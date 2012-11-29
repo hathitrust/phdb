@@ -1,5 +1,7 @@
 
-require 'enumchron_parser.rb'
+# encoding: UTF-8
+
+require 'phdb/enum_chron_parser'
 
 def get_reasons()
   reasons = %w(bib ncn con ddd man pvt ren nfi cdpp cip unp gfv crms add ddd exp udp orphcand del gatt)
@@ -33,6 +35,7 @@ def generate_htitem_table(infilen, outfilen, serialsfn)
   line_count = 0
   out_count = 0
   serial_count = 0
+  multi_count = 0
   f.each_line do |line|
     line_count += 1
     if ((line_count % 1000000) == 0)
@@ -71,6 +74,10 @@ def generate_htitem_table(infilen, outfilen, serialsfn)
         n_chron = ecparser.normalized_chron.strip
       end
     end
+    if (itype == 'mono' and n_enum.length > 0)
+      itype = 'multi'
+      multi_count += 1
+    end
     outline = "#{bits[0]}\t#{bits[1]}\t#{bits[2]}\t#{bits[3]}\t#{bits[4]}\t#{bits[5]}\t#{bits[6]}\t#{bits[7]}\t#{bits[13]}\t#{bits[14]}\t#{itype}\t0\t#{n_enum}\t#{n_chron}"
     out_count += 1
     outf.puts(outline)
@@ -79,6 +86,7 @@ def generate_htitem_table(infilen, outfilen, serialsfn)
   puts "#{line_count} lines processed."
   puts "#{out_count} lines exported."
   puts "#{serial_count} serials."
+  puts "#{multi_count} multis."
   outf.close
   f.close
   e.close

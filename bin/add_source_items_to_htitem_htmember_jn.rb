@@ -13,14 +13,15 @@ def add_source_items_to_htitem_htmember_jn(reportfn)
   # source institution map
   source_h = PHDBUtils.get_source_map()
   cali_members = %w(berkeley ucdavis uci ucla ucmerced ucr ucsb ucsc ucsd ucsf)
-  ht_members = PHDBUtils.get_member_list()
+  #ht_members = PHDBUtils.get_member_list()
   outfile = File.new(reportfn, "w")
     
   ### loop through HT items ###
   rowcount = 0
   cali_total = 0
-  misses = 0
+  deposits = 0
   cali_hits = 0
+  other_hits = 0
   conn.query("SELECT volume_id, source from htitem") do |row1|
     #puts "DEBUG #{row1[:source]}\t#{row1[:volume_id]}"
     #! handle California !#
@@ -38,38 +39,48 @@ def add_source_items_to_htitem_htmember_jn(reportfn)
         end 
       end
     else
+      member_id = source_h[row1[:source]]
       mem_query = "SELECT member_id from htitem_htmember_jn where volume_id = '#{row1[:volume_id]}'"
       test_rows = conn.query(mem_query)
       test_rows.each do |t|
-        if ht_members.include?(t[0].strip)
+        if t[0].strip == member_id
           skip = true
+          other_hits += 1
           break
         end 
       end
     end
     unless skip
       member_id = source_h[row1[:source]]
-      misses += 1
+      deposits += 1
       query_str = "INSERT IGNORE INTO htitem_htmember_jn (volume_id, member_id, copy_count) 
                   VALUES ('#{row1[:volume_id]}', '#{member_id}', 1)"
-      #conn.query(query_str)
+      conn.query(query_str)
       outstr = "#{row1[:volume_id]}\t#{member_id}"
+      #puts outstr
       outfile.puts(outstr)
     end
     skip = false
     if ((rowcount % 100000) == 0)
-      puts "Count:     #{count}..."
+      puts "\nRowcount:  #{rowcount}..."
       puts "\tCaliTotal: #{cali_total}"
       puts "\tCaliHits:  #{cali_hits}"
-      puts "\tMisses: #{misses}"
+      puts "\tOtherHits: #{other_hits}"
+      puts "\tDeposits:  #{deposits}"
     end
   end
   
-  outf.close
+  puts "\nFinal Rowcount:  #{rowcount}..."
+  puts "\tFinal CaliTotal: #{cali_total}"
+  puts "\tFinal CaliHits:  #{cali_hits}"
+  puts "\tFinal OtherHits: #{other_hits}"
+  puts "\tFinal Deposits:  #{deposits}"
+
+  outfile.close
   conn.close
 end
   
 if ARGV.length != 1
-  puts "Usage: ruby add_source_items_to_htitem_htmember_jn <reportfile>\n"
+  abort "Usage: ruby add_source_items_to_htitem_htmember_jn <reportfile>\n"
 end  
 add_source_items_to_htitem_htmember_jn(ARGV[0])

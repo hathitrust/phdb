@@ -31,3 +31,4 @@ def update_multipart_items()
   conn.close()
 end
   
+update_multipart_items()

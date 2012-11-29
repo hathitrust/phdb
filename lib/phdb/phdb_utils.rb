@@ -1,9 +1,13 @@
 require 'rubygems'
 require 'java'
 require 'jdbc-helper'
-require 'mysql-connector-java-5.1.17-bin.jar'
 require 'set'
 
+jars_dir = File.join(File.dirname(__FILE__), '../java')
+for jar in Dir["#{jars_dir}/*.jar"]
+  require jar
+end
+#require 'mysql-connector-java-5.1.17-bin.jar'
 
 module PHDBUtils
   
@@ -61,6 +65,19 @@ module PHDBUtils
     )
   end
   
+  # returns a list of member_ids           
+  def PHDBUtils.get_member_list()
+    conn = PHDBUtils.get_dev_conn() 
+    rows1 = conn.query("select distinct member_id from memberitem")
+    mem_ids = []
+    rows1.each do |row|
+      mid = row[:member_id]
+      mem_ids << mid
+    end
+    conn.close()
+    return mem_ids
+  end
+
   
   def PHDBUtils.parse_multiple_oclc(ocnline, delim=';')
     # currently just pulls the maximum number

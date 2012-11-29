@@ -44,13 +44,12 @@ module PHDBMultipartUtils
   # returns a list of members who have contributed enum_chron data           
   def PHDBMultipartUtils.get_multipart_members_list()
     conn = PHDBUtils.get_dev_conn() 
-    rows1 = conn.query("select member_id, count(*) from memberitem 
+    rows1 = conn.query("select member_id from memberitem 
                         where length(n_enum)>0 group by member_id")
     mem_ids = []
     rows1.each do |row|
       mid = row[:member_id]
-      count = row[1]
-      mem_ids << mid if count > 100    # noise filter
+      mem_ids << mid 
     end
     conn.close()
     return mem_ids
@@ -58,25 +57,21 @@ module PHDBMultipartUtils
    
    
   def PHDBMultipartUtils.get_multipart_cluster_list()
-    # get a connection
-    conn = get_dev_conn()
-    
-    # count all the unique ocns that match a cluster_id
-    rows1 = conn.query("select distinct(cluster_id) from memberitem_multi as mm, 
+    conn = PHDBUtils.get_dev_conn()
+    rows1 = conn.query("select distinct(cluster_id) from memberitem as mm, 
     cluster_oclc as co where mm.oclc = co.oclc;")
     cids = []
     rows1.each do |row|
-      cids << row
+      cids << row[0]
     end
-    
     conn.close()
     return cids
   end 
    
    
-  def choose_oclc(cluster_id, member_id)
-    new_conn = get_dev_conn()
-    res = new_conn.query("select co.oclc, count(*) from memberitem_multi as mm, 
+  def PHDBMultipartUtils.choose_oclc(cluster_id, member_id)
+    new_conn = PHDBUtils.get_dev_conn()
+    res = new_conn.query("select co.oclc, count(*) from memberitem as mm, 
                           cluster_oclc as co where co.oclc = mm.oclc and 
                           cluster_id = #{cluster_id} and member_id = '#{member_id}' group by oclc;")
     max = 0
@@ -91,13 +86,13 @@ module PHDBMultipartUtils
   end  
     
  
-### This method is the main implementation of the mapping between multipart records
-#   provided by members and hathitrust items.  Given a cluster id, this method will 
-#   return a set of lines of the format:
-#        oclc n_enum member_id volume_id [counts]
-#   where [counts] is a list of [copy_count, lm_count, wd_count, brt_count, access_count].
-###    
-def PHDBMultipartUtils.map_multipart_cluster_to_members(cluster_id, enum_members_l)
+  ### This method is the main implementation of the mapping between multipart records
+  #   provided by members and hathitrust items.  Given a cluster id, this method will 
+  #   return a set of lines of the format:
+  #        oclc n_enum member_id volume_id [counts]
+  #   where [counts] is a list of [copy_count, lm_count, wd_count, brt_count, access_count].
+  ###    
+  def PHDBMultipartUtils.map_multipart_cluster_to_members(cluster_id, enum_members_l)
     # this subroutine populates the "cluster_htmember_multi" data file
 
     # get a connection
@@ -107,8 +102,8 @@ def PHDBMultipartUtils.map_multipart_cluster_to_members(cluster_id, enum_members
     results = []
     
     ### get all oclcs ###
-    rows1 = conn.query("select distinct oclc from cluster_oclc 
-                        where cluster_id = #{cluster_id};")
+    query_str = "select distinct oclc from cluster_oclc where cluster_id = #{cluster_id};"
+    rows1 = conn.query(query_str)
     ocns = []
     rows1.each do |row1|
       ocns << row1[:oclc]
@@ -213,7 +208,7 @@ def PHDBMultipartUtils.map_multipart_cluster_to_members(cluster_id, enum_members
     ### add 'enum-match' members (should be <= all match) ###
     enum_match_mems.each do |emm|
       rows4 = conn.query("select distinct ho.oclc, h.n_enum from htitem as h, 
-                          htitem_oclc as ho, cluster_oclc as co, memberitem_multi as mm 
+                          htitem_oclc as ho, cluster_oclc as co, memberitem as mm 
                           where h.volume_id = ho.volume_id and ho.oclc = co.oclc and 
                           ho.oclc = mm.oclc and h.n_enum = mm.n_enum and co.cluster_id = #{cluster_id} 
                           and mm.member_id = '#{emm}';")
@@ -249,7 +244,7 @@ def PHDBMultipartUtils.map_multipart_cluster_to_members(cluster_id, enum_members
       ht_data.each do |ht_item|
         ocn = ht_item[0]
         if ht_item[0] =~ /[,]/          #  this can be optimized, its redundant
-          ocn = PHDBUtils.choose_oclc(cluster_id, amm)
+          ocn = PHDBMultipartUtils.choose_oclc(cluster_id, amm)
         end
         pkey = "#{ht_item[1]}"
         vol_str = ''
@@ -281,7 +276,7 @@ def PHDBMultipartUtils.map_multipart_cluster_to_members(cluster_id, enum_members
     # outfile
     outfile = File.new("cluster_H_multi.data", "w")
     # get a connection
-    conn = get_dev_conn()
+    conn = PHDBUtils.get_dev_conn()
     
     # get all cluster_ids
     cidrows = conn.query("select distinct(cluster_id) from cluster_htmember_multi;")
@@ -310,7 +305,7 @@ def PHDBMultipartUtils.map_multipart_cluster_to_members(cluster_id, enum_members
   def get_multiH_records_for_cluster(conn, cluster_id)
     results = conn.query("select distinct ho.oclc, h.n_enum, count(distinct mm.member_id) 
     from htitem as h, htitem_oclc as ho, cluster_oclc as co, cluster_htmember_jn as chj, 
-    memberitem_multi as mm where h.volume_id = ho.volume_id and ho.oclc = co.oclc 
+    memberitem as mm where h.volume_id = ho.volume_id and ho.oclc = co.oclc 
     and co.cluster_id = chj.cluster_id and ho.oclc = mm.oclc and h.n_enum = mm.n_enum 
     and co.cluster_id = #{cluster_id} group by ho.oclc, n_enum order by h.n_enum;")
     outstrs = []
@@ -349,34 +344,34 @@ def PHDBMultipartUtils.map_multipart_cluster_to_members(cluster_id, enum_members
     unique_volids = vol_ids.uniq
         
     # count the number of memberitems matching cluster
-    count3 = conn.query("select count(distinct co.oclc, member_id, n_enum) from memberitem_multi 
+    count3 = conn.query("select count(distinct co.oclc, member_id, n_enum) from memberitem 
       as mm, cluster_oclc as co where cluster_id = #{cluster_id} and co.oclc = mm.oclc 
       order by n_enum, member_id;")
     total_memberitems = count3[0]
     
     # count the number of memberitems matching cluster
     count4 = conn.query("select count(distinct co.oclc, mm.member_id, mm.n_enum) 
-    from memberitem_multi as mm, cluster_oclc as co, htitem as h, htitem_oclc as ho 
+    from memberitem as mm, cluster_oclc as co, htitem as h, htitem_oclc as ho 
     where cluster_id = #{cluster_id} and co.oclc = mm.oclc and ho.volume_id = h.volume_id 
     and co.oclc = ho.oclc and h.n_enum = mm.n_enum;")
     matching_memberitems = count4[0]
     
     # count the number of matching members (global H-count for cluster)
     count5 = conn.query("select count(distinct member_id, co.oclc)
-    from cluster_oclc as co, memberitem_multi as mm 
+    from cluster_oclc as co, memberitem as mm 
     where cluster_id = #{cluster_id} and co.oclc = mm.oclc;")
     all_members = count5[0]
     
     # count the number of matching members (global H-count for corje!luster)
     count6 = conn.query("select count(distinct mm.member_id, co.oclc) 
-    from memberitem_multi as mm, cluster_oclc as co, htitem as h, htitem_oclc as ho 
+    from memberitem as mm, cluster_oclc as co, htitem as h, htitem_oclc as ho 
     where cluster_id = #{cluster_id} and co.oclc = mm.oclc and ho.volume_id = h.volume_id 
     and co.oclc = ho.oclc and h.n_enum = mm.n_enum;")
     matching_members = count6[0]
     
     # count the number of memberitems with empty enum_chron
     count7 = conn.query("select count(distinct co.oclc, member_id, n_enum) 
-    from memberitem_multi as mm, cluster_oclc as co 
+    from memberitem as mm, cluster_oclc as co 
     where cluster_id = #{cluster_id} and co.oclc = mm.oclc and length(n_enum) = 0;")
     blank_entries = count7[0]
     
