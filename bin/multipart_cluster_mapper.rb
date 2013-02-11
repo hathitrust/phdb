@@ -50,5 +50,6 @@ end
 
 if ARGV.length != 1
   puts "Usage: ruby multipart_cluster_mapper.rb <outfile>\n"
+  exit
 end
 generate_cluster_htmember_multi_file(ARGV[0])

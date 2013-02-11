@@ -4,7 +4,8 @@
 require 'phdb/enum_chron_parser'
 
 def get_reasons()
-  reasons = %w(bib ncn con ddd man pvt ren nfi cdpp cip unp gfv crms add ddd exp udp orphcand del gatt)
+  reasons = %w(bib ncn con ddd man pvt ren nfi cdpp cip unp gfv crms 
+               add ddd exp udp orphcand del gatt ipma)
 end
 
 def generate_htitem_table(infilen, outfilen, serialsfn)

@@ -58,8 +58,10 @@ module PHDBMultipartUtils
    
   def PHDBMultipartUtils.get_multipart_cluster_list()
     conn = PHDBUtils.get_dev_conn()
-    rows1 = conn.query("select distinct(cluster_id) from memberitem as mm, 
-    cluster_oclc as co where mm.oclc = co.oclc;")
+    #rows1 = conn.query("select distinct(c.cluster_id) from memberitem as mm, 
+    #cluster_oclc as co, cluster as c where mm.oclc = co.oclc and co.cluster_id = c.cluster_id
+    #and c.cluster_type = 'mpm';")
+    rows1 = conn.query("select distinct(cluster_id) from cluster where cluster_type = 'mpm'")
     cids = []
     rows1.each do |row|
       cids << row[0]
@@ -326,8 +328,7 @@ module PHDBMultipartUtils
     #conn = get_dev_conn()
     
     # count all the unique ocns that match a cluster_id
-    rows1 = conn.query("select distinct oclc from cluster_oclc 
-      where cluster_id = #{cluster_id};")
+    rows1 = conn.query("select distinct oclc from cluster_oclc where cluster_id = #{cluster_id};")
     ocns = []
     rows1.each do |row|
       ocns << row

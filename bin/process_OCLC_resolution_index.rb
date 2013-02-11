@@ -77,6 +77,7 @@ end
   
 root_dir = "/htapps/pulintz.babel/data/phdb/TABLE_DATA/OCLC"
 file_roots = %w{x2.0-1 x2.1-3 x2.3-5 x2.5-7 x2.7-9}
+#file_roots = %w{x2.1-3 x2.3-5 x2.5-7 x2.7-9}
 
 file_roots.each do |fr|
   fullfr = "#{root_dir}/#{fr}"

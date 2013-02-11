@@ -21,7 +21,7 @@ def update_multipart_items()
     vid_rows = conn.query("select distinct(volume_id) from cluster_htitem_jn where cluster_id = #{cid};")
     vid_rows.each do |vrow|
       vid = vrow[0]
-      update_q = conn.query("update htitem set item_type = 'multi' where volume_id = '#{vid}'")
+      update_q = conn.update("update htitem set item_type = 'multi' where volume_id = '#{vid}'")
     end
     cluster_count += 1
     if ((cluster_count % 100000) == 0)

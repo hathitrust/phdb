@@ -55,7 +55,7 @@ def add_source_items_to_htitem_htmember_jn(reportfn)
       deposits += 1
       query_str = "INSERT IGNORE INTO htitem_htmember_jn (volume_id, member_id, copy_count) 
                   VALUES ('#{row1[:volume_id]}', '#{member_id}', 1)"
-      conn.query(query_str)
+      conn.update(query_str)
       outstr = "#{row1[:volume_id]}\t#{member_id}"
       #puts outstr
       outfile.puts(outstr)

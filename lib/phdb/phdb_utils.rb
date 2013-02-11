@@ -37,29 +37,45 @@ module PHDBUtils
        'UCM' => 'ucm',
        'USU' => 'usu',
        'MDL' => 'minn',
-       'MChB' => 'bc'
+       'MChB' => 'bc',
+       'FU' => 'ufl'
     }
   end
+
+  # currently storing passwords in separate files in my
+  # project folder (under /etc).  Files are named
+  # after username and contain a single line.
+  def PHDBUtils.get_password_from_file(fn)
+    file = File.new(fn, "r")
+    line = file.gets
+    return line.chomp
+  end
+
+
   
   def PHDBUtils.get_dev_conn()
+    # get PW
+    pw = PHDBUtils.get_password_from_file('/htapps/pulintz.babel/Code/phdb/etc/mdp')
     # Log in
     conn = JDBCHelper::Connection.new(
       :driver=>'com.mysql.jdbc.Driver', 
       :url=>'jdbc:mysql://mysql-htdev/pulintz_mdp',
       :user => 'mdp',
-      :password => 'II4md-py',
+      :password => pw,
       :useCursorFetch => 'true', 
       :defaultFetchSize => 10000
     )
   end
   
   def PHDBUtils.get_prod_conn()
+    # get PW              
+    pw = PHDBUtils.get_password_from_file('/htapps/pulintz.babel/Code/phdb/etc/mdp')
     # Log in
     conn = JDBCHelper::Connection.new(
       :driver=>'com.mysql.jdbc.Driver', 
       :url=>'jdbc:mysql://mysql-sdr/mdp_holdings',
       :user => 'mdp',
-      :password => 'II4md-py',
+      :password => pw,
       :useCursorFetch => 'true', 
       :defaultFetchSize => 10000
     )
@@ -69,6 +85,31 @@ module PHDBUtils
   def PHDBUtils.get_member_list()
     conn = PHDBUtils.get_dev_conn() 
     rows1 = conn.query("select distinct member_id from memberitem")
+    mem_ids = []
+    rows1.each do |row|
+      mid = row[:member_id]
+      mem_ids << mid
+    end
+    conn.close()
+    return mem_ids
+  end
+
+  def PHDBUtils.get_active_member_list()
+    conn = PHDBUtils.get_dev_conn()
+    rows1 = conn.query("select distinct member_id from htmember where status=1 order by member_id")
+    mem_ids = []
+    rows1.each do |row|
+      mid = row[:member_id]
+      mem_ids << mid
+    end
+    conn.close()
+    return mem_ids
+  end
+
+  def PHDBUtils.get_serial_member_list()
+    conn = PHDBUtils.get_dev_conn()
+    # query takes 2.5 min (Feb 2013)
+    rows1 = conn.query("select distinct member_id from memberitem where item_type='serial' order by member_id")
     mem_ids = []
     rows1.each do |row|
       mid = row[:member_id]
