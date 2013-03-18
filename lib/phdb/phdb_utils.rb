@@ -84,7 +84,7 @@ module PHDBUtils
   # returns a list of member_ids           
   def PHDBUtils.get_member_list()
     conn = PHDBUtils.get_dev_conn() 
-    rows1 = conn.query("select distinct member_id from memberitem")
+    rows1 = conn.query("select distinct member_id from holdings_memberitem")
     mem_ids = []
     rows1.each do |row|
       mid = row[:member_id]
@@ -96,7 +96,7 @@ module PHDBUtils
 
   def PHDBUtils.get_active_member_list()
     conn = PHDBUtils.get_dev_conn()
-    rows1 = conn.query("select distinct member_id from htmember where status=1 order by member_id")
+    rows1 = conn.query("select distinct member_id from holdings_htmember where status=1 order by member_id")
     mem_ids = []
     rows1.each do |row|
       mid = row[:member_id]
@@ -109,7 +109,7 @@ module PHDBUtils
   def PHDBUtils.get_serial_member_list()
     conn = PHDBUtils.get_dev_conn()
     # query takes 2.5 min (Feb 2013)
-    rows1 = conn.query("select distinct member_id from memberitem where item_type='serial' order by member_id")
+    rows1 = conn.query("select distinct member_id from holdings_memberitem where item_type='serial' order by member_id")
     mem_ids = []
     rows1.each do |row|
       mid = row[:member_id]
@@ -168,8 +168,8 @@ module PHDBUtils
     # select multipart clusters
     cluster_count = 0
     multipart_clusters = []
-    rows = conn.query("select distinct(cluster_id) from cluster_htitem_jn as chtij, 
-                      htitem as h where h.volume_id = chtij.volume_id and h.item_type = 'multi';")
+    rows = conn.query("select distinct(cluster_id) from holdings_cluster_htitem_jn as chtij, 
+                      holdings_htitem as h where h.volume_id = chtij.volume_id and h.item_type = 'multi';")
     rows.each do |row|
       multipart_clusters << row[0]
     end
@@ -178,7 +178,7 @@ module PHDBUtils
     # loop through clusters and assign extra items (that don't have enum data) the 'multi' type
     multipart_clusters.each do |cid|
       # get volume_ids associated with the cluster                      
-      vid_rows = conn.query("select distinct(volume_id) from cluster_htitem_jn where cluster_id = #{cid};")
+      vid_rows = conn.query("select distinct(volume_id) from holdings_cluster_htitem_jn where cluster_id = #{cid};")
       vid_rows.each do |vrow|
         vid = vrow[0]
         update_q = conn.query("update htitem set item_type = 'multi' where volume_id = '#{vid}'")
@@ -198,13 +198,14 @@ module PHDBUtils
     conn.fetch_size=50000
     
     cluster_count = 0
-    query = "select cluster_id from cluster;"
+    query = "select cluster_id from holdings_cluster;"
     conn.enumerate(query).each_slice(50000) do |slice|
       slice.each do |row|
         cid = row[0]
         # grab all item_types for items in the cluster
         ctypes = []
-        crows = conn.query("select distinct item_type from htitem as h, cluster_htitem_jn as chtij, cluster as c 
+        crows = conn.query("select distinct item_type from holdings_htitem as h, 
+                            holdings_cluster_htitem_jn as chtij, holdings_cluster as c 
                             where c.cluster_id = chtij.cluster_id and chtij.volume_id = h.volume_id 
                             and c.cluster_id = #{cid};")
         crows.each do |ctype|
@@ -321,7 +322,7 @@ module PHDBUtils
     # get cluster ids
     puts "grabbing cluster_ids..."
     serial_ocns.each do |tocn|
-      conn.query("SELECT cluster_id FROM cluster_oclc WHERE oclc=#{tocn}") do |row|
+      conn.query("SELECT cluster_id FROM holdings_cluster_oclc WHERE oclc=#{tocn}") do |row|
         cluster_ids.add row[0]
       end
     end
@@ -331,8 +332,8 @@ module PHDBUtils
     # get volumes for each
     puts "grabbing volume_ids..."
     cluster_ids.each do |cid|
-      conn.query("SELECT volume_id from cluster_htitem_jn where cluster_id = #{cid}") do |row1|
-        conn.query("SELECT enum_chron from htitem where volume_id = '#{row1[:volume_id]}'") do |row2|
+      conn.query("SELECT volume_id from holdings_cluster_htitem_jn where cluster_id = #{cid}") do |row1|
+        conn.query("SELECT enum_chron from holdings_htitem where volume_id = '#{row1[:volume_id]}'") do |row2|
           outf.puts("#{cid}\t#{row1[:volume_id]}\t#{row2[:enum_chron]}")
         end    
       end
@@ -400,14 +401,13 @@ module PHDBUtils
     
     
   def PHDBUtils.pull_serial_sizes(serial_data_fn)
-    # takes a serial data file (clusterid, volumeid, enum_chron), hits the mdp_tracking.audit table                  
+    # takes a serial data file (clusterid, volumeid, enum_chron), hits the mdp_tracking.audit table 
     # and exports a file of the form (clusterid, volumeid, zip_size, mets_size) called                   
-    # 'serialsize.out.tsv'                                                                                           
-
+    # 'serialsize.out.tsv'                                                                               
     file = File.new(serial_data_fn, "r")
     outf = File.open("serialsize.out.tsv", "w")
 
-    # get a connection                                                                                               
+    # get a connection         
     pconn = get_prod_conn()
     count = 0
     while (line = file.gets)
@@ -452,13 +452,13 @@ module PHDBUtils
     ### loop through HT items ###
     count = 0
     cali_hits = 0
-    conn.query("SELECT volume_id, source from htitem") do |row1|
+    conn.query("SELECT volume_id, source from holdings_htitem") do |row1|
       #puts "DEBUG #{row1[:source]}\t#{row1[:volume_id]}"
       #! handle California !#
       count += 1
       skip = false
       if row1[:source] == 'UC'
-        cali_query = "SELECT member_id from htitem_htmember_jn where volume_id = '#{row1[:volume_id]}'"
+        cali_query = "SELECT member_id from holdings_htitem_htmember_jn where volume_id = '#{row1[:volume_id]}'"
         test_rows = conn.query(cali_query)
         test_rows.each do |t|
           if cali_members.include?(t[0].strip)
@@ -470,7 +470,7 @@ module PHDBUtils
       cali_hits += 1 if skip
       member_id = source_h[row1[:source]]
       unless skip
-        query_str = "INSERT IGNORE INTO htitem_htmember_jn (volume_id, member_id, copy_count) 
+        query_str = "INSERT IGNORE INTO holdings_htitem_htmember_jn (volume_id, member_id, copy_count) 
                   VALUES ('#{row1[:volume_id]}', '#{member_id}', 1)"
         conn.query(query_str)
       end
@@ -496,7 +496,7 @@ module PHDBUtils
     
     # get oclc hash
     oclc_h = {}
-    o_rows = conn.query("select distinct(oclc) from htitem_oclc;")
+    o_rows = conn.query("select distinct(oclc) from holdings_htitem_oclc;")
     o_rows.each do |o|
       oclc_h[o[0]] = 1
     end
@@ -583,7 +583,7 @@ module PHDBUtils
     
     # get member ids
     members = []
-    rows = conn.query("select member_id, member_name from htmember")
+    rows = conn.query("select member_id, member_name from holdings_htmember")
     rows.each do |row|
       members << row[:member_id]
     end
@@ -593,7 +593,7 @@ module PHDBUtils
     
     smembers.each do |mem|
       q1 = "select item_type, count(distinct hhj.volume_id) 
-      from htitem_htmember_jn as hhj, htitem as h where hhj.volume_id = h.volume_id 
+      from holdings_htitem_htmember_jn as hhj, htitem as h where hhj.volume_id = h.volume_id 
       and member_id = '#{mem}' group by item_type"
       
       conn.query(q1) do |row|
@@ -646,7 +646,7 @@ module PHDBUtils
     files = Dir["#{my_dir}/*.tsv"]
     files.sort!
     files.each do |fil|
-      query = "LOAD DATA LOCAL INFILE '#{fil}' INTO TABLE memberitem IGNORE 1 LINES 
+      query = "LOAD DATA LOCAL INFILE '#{fil}' INTO TABLE holdings_memberitem IGNORE 1 LINES 
       (oclc, local_id, member_id, status, item_condition, process_date, enum_chron, item_type, issn, n_enum, n_chron)"
       puts "loading #{fil}..."
       conn.update(query)
