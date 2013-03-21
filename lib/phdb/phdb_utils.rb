@@ -55,12 +55,12 @@ module PHDBUtils
   
   def PHDBUtils.get_dev_conn()
     # get PW
-    pw = PHDBUtils.get_password_from_file('/htapps/pulintz.babel/Code/phdb/etc/mdp')
+    pw = PHDBUtils.get_password_from_file('/htapps/pulintz.babel/Code/phdb/etc/ht_repository')
     # Log in
     conn = JDBCHelper::Connection.new(
       :driver=>'com.mysql.jdbc.Driver', 
-      :url=>'jdbc:mysql://mysql-htdev/pulintz_mdp',
-      :user => 'mdp',
+      :url=>'jdbc:mysql://mysql-htdev/ht_repository',
+      :user => 'ht_repository',
       :password => pw,
       :useCursorFetch => 'true', 
       :defaultFetchSize => 10000
@@ -551,7 +551,7 @@ module PHDBUtils
       # get all vol_ids associated with these ocns
       vol_ids = Set.new
       ocns.each do |ocn|
-        vid_rows = conn.query("select volume_id from htitem_oclc where oclc = #{ocn};")
+        vid_rows = conn.query("select volume_id from holdings_htitem_oclc where oclc = #{ocn};")
         vid_rows.each do |vrow|
           #vol_ids << vrow
           vol_ids.add(vrow[0])       
@@ -593,7 +593,7 @@ module PHDBUtils
     
     smembers.each do |mem|
       q1 = "select item_type, count(distinct hhj.volume_id) 
-      from holdings_htitem_htmember_jn as hhj, htitem as h where hhj.volume_id = h.volume_id 
+      from holdings_htitem_htmember_jn as hhj, holdings_htitem as h where hhj.volume_id = h.volume_id 
       and member_id = '#{mem}' group by item_type"
       
       conn.query(q1) do |row|
@@ -620,7 +620,7 @@ module PHDBUtils
     # get oclc hash
     oclc_h = {}
     query = "select ho.oclc, ho.volume_id, item_type
-               from htitem_oclc as ho, htitem as h 
+               from holdings_htitem_oclc as ho, holdings_htitem as h 
                where h.volume_id = ho.volume_id"
     conn.enumerate(query).each_slice(50000) do |slice|
       slice.each do |row|

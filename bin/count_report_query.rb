@@ -8,7 +8,7 @@ def put_total_member_counts(filen)
   outf = File.open(filen, "w")
   
   rows = conn.query("select member_id, item_type, count(*) 
-                     from memberitem group by member_id, item_type")
+                     from holdings_memberitem group by member_id, item_type")
   rows.each do |row|
     outstr = row.join("\t")
     outf.puts outstr
@@ -23,7 +23,7 @@ def put_matching_item_counts(outfn)
   outf = File.open(outfn, 'w')
                                                                                      
   members = []
-  rows = conn.query("select member_id, member_name from htmember")
+  rows = conn.query("select member_id, member_name from holdings_htmember")
   rows.each do |row|
     members << row[:member_id]
   end
@@ -32,7 +32,7 @@ def put_matching_item_counts(outfn)
   smembers = members.sort
   smembers.each do |mem|
     q1 = "select item_type, count(distinct hhj.volume_id)
-          from htitem_htmember_jn as hhj, htitem as h where hhj.volume_id = h.volume_id
+          from holdings_htitem_htmember_jn as hhj, holdings_htitem as h where hhj.volume_id = h.volume_id
           and member_id = '#{mem}' group by item_type"
     conn.query(q1) do |row|
       out_str = "#{mem}\t#{row[0]}\t#{row[1]}"
@@ -50,7 +50,7 @@ def put_matching_oclc_counts(outfn)
   outf = File.open(outfn, 'w')
 
   members = []
-  rows = conn.query("select member_id, member_name from htmember")
+  rows = conn.query("select member_id, member_name from holdings_htmember")
   rows.each do |row|
     members << row[:member_id]
   end
@@ -59,7 +59,7 @@ def put_matching_oclc_counts(outfn)
   smembers = members.sort
   smembers.each do |mem|
     q1 = "select item_type, count(distinct oclc)      
-          from memberitem where member_id = '#{mem}' group by item_type"
+          from holdings_memberitem where member_id = '#{mem}' group by item_type"
     conn.query(q1) do |row|
       out_str = "#{mem}\t#{row[0]}\t#{row[1]}"
       puts out_str
