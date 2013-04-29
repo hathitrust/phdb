@@ -84,7 +84,7 @@ module PHDBUtils
   # returns a list of member_ids           
   def PHDBUtils.get_member_list()
     conn = PHDBUtils.get_dev_conn() 
-    rows1 = conn.query("select distinct member_id from holdings_memberitem")
+    rows1 = conn.query("select distinct member_id from holdings_htmember")
     mem_ids = []
     rows1.each do |row|
       mid = row[:member_id]

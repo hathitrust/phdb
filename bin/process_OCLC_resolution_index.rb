@@ -10,7 +10,7 @@ def prune_OCLC_resolution_data(datafn, outfn)
     
   # get oclc hash
   oclc_h = {}
-  o_rows = conn.query("select distinct(oclc) from htitem_oclc;")
+  o_rows = conn.query("select distinct(oclc) from holdings_htitem_oclc;")
   o_rows.each do |o|
     oclc_h[o[0]] = 1
   end
@@ -52,7 +52,7 @@ def generate_OCLC_data_for_htitem_oclc(datafn, outfn)
     # get all vol_ids associated with these ocns
     vol_ids = Set.new
     ocns.each do |ocn|
-      vid_rows = conn.query("select volume_id from htitem_oclc where oclc = #{ocn};")
+      vid_rows = conn.query("select volume_id from holdings_htitem_oclc where oclc = #{ocn};")
       vid_rows.each do |vrow|
       #vol_ids << vrow
         vol_ids.add(vrow[0])

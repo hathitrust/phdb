@@ -8,8 +8,8 @@ def update_multipart_items()
   # select multipart clusters
   cluster_count = 0
   multipart_clusters = []
-  rows = conn.query("select distinct(cluster_id) from cluster_htitem_jn as chtij, 
-                     htitem as h where h.volume_id = chtij.volume_id and h.item_type = 'multi';")
+  rows = conn.query("select distinct(cluster_id) from holdings_cluster_htitem_jn as chtij, 
+                     holdings_htitem as h where h.volume_id = chtij.volume_id and h.item_type = 'multi';")
   rows.each do |row|
     multipart_clusters << row[0]
   end
@@ -18,10 +18,10 @@ def update_multipart_items()
   # loop through clusters and assign extra items (that don't have enum data) the 'multi' type
   multipart_clusters.each do |cid|
     # get volume_ids associated with the cluster                      
-    vid_rows = conn.query("select distinct(volume_id) from cluster_htitem_jn where cluster_id = #{cid};")
+    vid_rows = conn.query("select distinct(volume_id) from holdings_cluster_htitem_jn where cluster_id = #{cid};")
     vid_rows.each do |vrow|
       vid = vrow[0]
-      update_q = conn.update("update htitem set item_type = 'multi' where volume_id = '#{vid}'")
+      update_q = conn.update("update holdings_htitem set item_type = 'multi' where volume_id = '#{vid}'")
     end
     cluster_count += 1
     if ((cluster_count % 100000) == 0)

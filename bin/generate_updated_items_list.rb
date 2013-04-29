@@ -50,7 +50,7 @@ def generate_volume_change_list(olddb, newdb, outfn)
   # going to have to loop through every current volume_id and check it against the old version
   access_count_changes = []
   gain_loss_changes = []   
-  query1 = "select volume_id from htitem"
+  query1 = "select volume_id from holdings_htitem"
   conn.enumerate(query1).each_slice(50000) do |slice|
     slice.each do |row|
       count += 1
@@ -106,6 +106,6 @@ if ARGV.length != 1
   puts "Usage: ruby generate_updated_items_list.rb <outfile>\n"
 end
 
-old_table_name = "htitem_htmember_jn_old"
-new_table_name = "htitem_htmember_jn"
+old_table_name = "pulintz_ht.holdings_htitem_htmember_jn_old"
+new_table_name = "pulintz_ht.holdings_htitem_htmember_jn"
 generate_volume_change_list(old_table_name, new_table_name, ARGV[0])

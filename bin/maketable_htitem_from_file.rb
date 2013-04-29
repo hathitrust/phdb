@@ -18,7 +18,8 @@ def generate_htitem_table(infilen, outfilen, serialsfn)
   # parse serials file to get record nums
   umrecords = Hash.new
   s.each_line do |sline|
-    bits = sline.split("\t")
+    line = sline.force_encoding("ISO-8859-1").encode("UTF-8")
+    bits = line.split("\t")
     next unless bits.length > 0
     um_id_i = bits[0].to_i
     if um_id_i == 0 
@@ -45,10 +46,11 @@ def generate_htitem_table(infilen, outfilen, serialsfn)
     enum_chron = ''
     n_enum = ''
     n_chron = ''
-    bits = line.split("\t")
+    nline = line.force_encoding("ISO-8859-1").encode("UTF-8")
+    bits = nline.split("\t")
     if bits.length < 15
-      puts "Line too short: '#{line}'"
-      e.puts(line)
+      puts "Line too short: '#{nline}'"
+      e.puts(nline)
       next
     end
     bits.map{ |item| item.strip }
@@ -61,7 +63,7 @@ def generate_htitem_table(infilen, outfilen, serialsfn)
       serial_count += 1
     end
     if not reasons.include?(reason)
-      puts "Bad Reason Code (#{reason}).  Line '#{line.strip}'"
+      puts "Bad Reason Code (#{reason}).  Line '#{nline.strip}'"
     end
     if enum_chron.length > 0
       enum_chron = enum_chron.gsub("\t", ' ')

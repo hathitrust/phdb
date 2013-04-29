@@ -26,7 +26,7 @@ def calc_cluster_rights()
   conn = PHDBUtils.get_dev_conn()
   
   puts "Grabbing cluster ids..."
-  query1 = "SELECT cluster_id FROM cluster"
+  query1 = "SELECT cluster_id FROM holdings_cluster"
   all_clusters = run_list_query(conn, query1)
     
   citer = 0
@@ -34,8 +34,8 @@ def calc_cluster_rights()
   all_clusters.each do |cid|
     citer += 1 
     # get the access designation of all volumes in a cluster 
-    query2 = "SELECT access FROM htitem, cluster_htitem_jn 
-              WHERE cluster_htitem_jn.volume_id = htitem.volume_id 
+    query2 = "SELECT access FROM holdings_htitem, holdings_cluster_htitem_jn 
+              WHERE holdings_cluster_htitem_jn.volume_id = holdings_htitem.volume_id 
               AND cluster_id = #{cid}" 
     accesses = run_list_query(conn, query2)
         
@@ -68,7 +68,7 @@ def calc_cluster_rights()
       puts "'-1' rights id, shouldn't happen."
       exit
     end   
-    query3 = "UPDATE cluster SET cost_rights_id = #{rid} WHERE cluster_id = #{cid}" 
+    query3 = "UPDATE holdings_cluster SET cost_rights_id = #{rid} WHERE cluster_id = #{cid}" 
     
     # execute update
     conn.update(query3)  

@@ -15,7 +15,7 @@ def generate_HT_AWS_file(outfn)
   oclc_h = {}
 
   query = "select ho.oclc, ho.volume_id, item_type
-               from htitem_oclc as ho, htitem as h
+               from holdings_htitem_oclc as ho, holdings_htitem as h
                where h.volume_id = ho.volume_id"
   conn.enumerate(query).each_slice(50000) do |slice|
     slice.each do |row|

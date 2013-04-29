@@ -66,6 +66,7 @@ public_costs.each { |a| sum+=a }
 per_member = sum/total_members
 
 puts "Public domain costs:"
+puts "Calculating PD cost based on #{total_members} members."
 puts "\tSinglepart Monos: $#{public_costs[0]}"
 puts "\tSerials: $#{public_costs[1]}"
 puts "\tMultipart Monos: $#{public_costs[2]}"

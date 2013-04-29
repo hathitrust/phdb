@@ -44,7 +44,7 @@ module PHDBMultipartUtils
   # returns a list of members who have contributed enum_chron data           
   def PHDBMultipartUtils.get_multipart_members_list()
     conn = PHDBUtils.get_dev_conn() 
-    rows1 = conn.query("select member_id from memberitem 
+    rows1 = conn.query("select member_id from holdings_memberitem 
                         where length(n_enum)>0 group by member_id")
     mem_ids = []
     rows1.each do |row|
@@ -61,7 +61,7 @@ module PHDBMultipartUtils
     #rows1 = conn.query("select distinct(c.cluster_id) from memberitem as mm, 
     #cluster_oclc as co, cluster as c where mm.oclc = co.oclc and co.cluster_id = c.cluster_id
     #and c.cluster_type = 'mpm';")
-    rows1 = conn.query("select distinct(cluster_id) from cluster where cluster_type = 'mpm'")
+    rows1 = conn.query("select distinct(cluster_id) from holdings_cluster where cluster_type = 'mpm'")
     cids = []
     rows1.each do |row|
       cids << row[0]
@@ -73,8 +73,8 @@ module PHDBMultipartUtils
    
   def PHDBMultipartUtils.choose_oclc(cluster_id, member_id)
     new_conn = PHDBUtils.get_dev_conn()
-    res = new_conn.query("select co.oclc, count(*) from memberitem as mm, 
-                          cluster_oclc as co where co.oclc = mm.oclc and 
+    res = new_conn.query("select co.oclc, count(*) from holdings_memberitem as mm, 
+                          holdings_cluster_oclc as co where co.oclc = mm.oclc and 
                           cluster_id = #{cluster_id} and member_id = '#{member_id}' group by oclc;")
     max = 0
     winner = ''
@@ -104,7 +104,7 @@ module PHDBMultipartUtils
     results = []
     
     ### get all oclcs ###
-    query_str = "select distinct oclc from cluster_oclc where cluster_id = #{cluster_id};"
+    query_str = "select distinct oclc from holdings_cluster_oclc where cluster_id = #{cluster_id};"
     rows1 = conn.query(query_str)
     ocns = []
     rows1.each do |row1|
@@ -116,7 +116,7 @@ module PHDBMultipartUtils
     ##  basically its member_id[oclc-nenum] -> [copy_count, lm_count, ...]   ##
     member_data = {}    # this will be a hash of hashes of lists (refactor this)
     ocns.each do |ocn|
-      rows2 = conn.query("select member_id, oclc, n_enum, status, item_condition from memberitem
+      rows2 = conn.query("select member_id, oclc, n_enum, status, item_condition from holdings_memberitem
                           where oclc = #{ocn};")
       rows2.each do |row2|
         data_key = "#{row2[:oclc]}-#{row2[:n_enum]}"
@@ -149,8 +149,8 @@ module PHDBMultipartUtils
     
     ### get all HT data ###
     ht_data = []  # this will be a list of lists
-    rows3 = conn.query("select distinct oclcs, n_enum, chtij.volume_id from htitem as h, 
-                        cluster_htitem_jn as chtij where h.volume_id = chtij.volume_id 
+    rows3 = conn.query("select distinct oclcs, n_enum, chtij.volume_id from holdings_htitem as h, 
+                        holdings_cluster_htitem_jn as chtij where h.volume_id = chtij.volume_id 
                         and chtij.cluster_id = #{cluster_id};")
     #rows3 = conn.query("select distinct oclcs, n_enum from htitem as h, 
     #                    cluster_htitem_jn as chtij where h.volume_id = chtij.volume_id 
@@ -209,8 +209,8 @@ module PHDBMultipartUtils
     
     ### add 'enum-match' members (should be <= all match) ###
     enum_match_mems.each do |emm|
-      rows4 = conn.query("select distinct ho.oclc, h.n_enum from htitem as h, 
-                          htitem_oclc as ho, cluster_oclc as co, memberitem as mm 
+      rows4 = conn.query("select distinct ho.oclc, h.n_enum from holdings_htitem as h, 
+                          holdings_htitem_oclc as ho, holdings_cluster_oclc as co, holdings_memberitem as mm 
                           where h.volume_id = ho.volume_id and ho.oclc = co.oclc and 
                           ho.oclc = mm.oclc and h.n_enum = mm.n_enum and co.cluster_id = #{cluster_id} 
                           and mm.member_id = '#{emm}';")
@@ -267,6 +267,146 @@ module PHDBMultipartUtils
       end
     end
     
+    conn.close()
+    return results
+  end  
+
+  
+  ### Modification of the previous routine to only generate a file for an individual member  ###
+  def PHDBMultipartUtils.map_multipart_cluster_to_individual_member(cluster_id, member_id, member_type)
+    # this subroutine populates the "cluster_htmember_multi" data file
+
+    # get a connection
+    conn = PHDBUtils.get_dev_conn()
+    
+    # collect data rows
+    results = []
+    
+    ### get all oclcs ###
+    query_str = "select distinct oclc from holdings_cluster_oclc where cluster_id = #{cluster_id};"
+    rows1 = conn.query(query_str)
+    ocns = []
+    rows1.each do |row1|
+      ocns << row1[:oclc]
+    end
+    
+    ### get all data for these OCLCs and construct the memberdata stucture   ###
+    ##  The structure is a list of counts, basically its oclc-nenum -> [copy_count, lm_count, ...]  
+    member_data = {}   
+    ocns.each do |ocn|
+      rows2 = conn.query("select oclc, n_enum, status, item_condition from holdings_memberitem
+                          where oclc = #{ocn} and member_id = '#{member_id}';")
+      rows2.each do |row2|
+        n_enum = row2[:n_enum]
+        next if n_enum.nil?
+        data_key = "#{ocn}-#{n_enum}"
+        if member_data.has_key?(data_key)
+          member_data[data_key][0] += 1
+          member_data[data_key][1] += 1 if row2[:status] == 'LM' 
+          member_data[data_key][2] += 1 if row2[:status] == 'WD' 
+          member_data[data_key][3] += 1 if row2[:item_condition] == 'BRT'
+          member_data[data_key][4] += 1 if (row2[:status] == 'LM' or row2[:item_condition] == 'BRT') 
+        else
+          count_l = [1, 0, 0, 0, 0]
+          count_l[1] += 1 if row2[:status] =='LM' 
+          count_l[2] += 1 if row2[:status] == 'WD' 
+          count_l[3] += 1 if row2[:item_condition] == 'BRT'
+          count_l[4] += 1 if (row2[:status] == 'LM' or row2[:item_condition] == 'BRT')
+          member_data[data_key] = count_l
+        end
+      end
+    end
+    
+    return nil if member_data.empty?
+
+    ### get all HT data ###
+    ht_data = []  # this will be a list of lists
+    rows3 = conn.query("select distinct oclcs, n_enum, chtij.volume_id from holdings_htitem as h, 
+                        holdings_cluster_htitem_jn as chtij where h.volume_id = chtij.volume_id 
+                        and chtij.cluster_id = #{cluster_id};")
+    rows3.each do |row3|
+      ht_data << [row3[0], row3[1], row3[2]]
+    end
+    
+    # if HT data has 'blanks', bailout assign all members from both lists
+    punt = 0
+    #ht_data.each do |ht_item|
+    #  punt = 1 if not (ht_item[1] =~ /[A-Z0-9]/i)
+    #end
+    
+    ### construct volume_id maps for cluster enums
+    ht_dict = {}
+    ht_data.each do |htd|
+      if ht_dict.has_key?(htd[1])   # 1 = n_enum
+        ht_dict[htd[1]] << htd[2]   # 2 = volume_id
+      else
+        ht_dict[htd[1]] = [htd[2]]
+      end
+    end
+    
+    ### Handle detailed matching VS all matching (punt) case ###
+    punt_count = 0
+    non_punt_count = 0
+    if member_type
+      rows4 = conn.query("select distinct ho.oclc, h.n_enum from holdings_htitem as h, 
+                          holdings_htitem_oclc as ho, holdings_cluster_oclc as co, holdings_memberitem as mm
+                          where h.volume_id = ho.volume_id and ho.oclc = co.oclc and 
+                          ho.oclc = mm.oclc and h.n_enum = mm.n_enum and co.cluster_id = #{cluster_id} 
+                          and mm.member_id = '#{member_id}';")
+      # if no matches (but with member data for oclc), add member to all-match members                              
+      if rows4.length() == 0
+        punt = 1
+        punt_count += 1
+      else 
+        punt = 0
+        non_punt_count += 1
+      end
+      rows4.each do |row4|
+        pkey = "#{row4[1]}"      # n_enum
+        vol_str = ''
+        if ht_dict[pkey]
+          vol_str = ht_dict[pkey].join(',')
+        else
+          puts "Problem: zero length vol_str:\n\t#{cluster_id}\t#{row4[0]}\t#{row4[1]}\t#{member_id}"
+        end
+        count_key = "#{row4[0]}-#{row4[1]}"   # oclc-n_enum
+        count_str = "1\t0\t0\t0\t0"
+        if member_data.has_key?(count_key)
+          copy_counts = member_data[count_key]
+          count_str = copy_counts.join("\t")
+        #else
+        #  puts "Problem, bad copy count key: #{count_key}"
+        end
+        outstr = "#{row4[0]}\t#{row4[1]}\t#{member_id}\t#{cluster_id}\t#{vol_str}\t#{count_str}"
+        results << outstr
+        #puts outstr
+      end
+    end  
+
+    if (punt == 1)   # match all-all
+      ht_data.each do |ht_item|
+        ocn = ht_item[0]
+        if ht_item[0] =~ /[,]/          #  this can be optimized, its redundant
+          ocn = PHDBMultipartUtils.choose_oclc(cluster_id, member_id)
+        end
+        pkey = "#{ht_item[1]}"
+        vol_str = ''
+        if ht_dict[pkey] 
+          vol_str = ht_dict[pkey].join(',')
+        else
+          puts "Problem: zero length vol_str:\n\t#{cluster_id}\t#{row4[0]}\t#{row4[1]}\t#{member_id}"
+        end
+        count_key = "#{ocn}-#{ht_item[1]}"
+        count_str = "1\t0\t0\t0\t0"
+        if member_data.has_key?(count_key)
+          copy_counts = member_data[count_key]
+          count_str = copy_counts.join("\t")
+        end
+        outstr = "#{ocn}\t#{ht_item[1]}\t#{member_id}\t#{cluster_id}\t#{vol_str}\t#{count_str}"
+        results << outstr
+        #puts outstr
+      end
+    end
     conn.close()
     return results
   end  
