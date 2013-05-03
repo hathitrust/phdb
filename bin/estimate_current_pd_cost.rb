@@ -7,7 +7,7 @@ TOTAL_OP_COST = 1759734.0
 ave_cost_per_vol = PHDBUtils.calc_ave_cost_per_vol(TOTAL_OP_COST)
 
 member_ids = PHDBUtils.get_member_list()
-total_members = member_ids.length + 2
+total_members = member_ids.length + 1
 #total_members = member_ids.length - 1
 puts "Calculating PD cost based on #{total_members} members."
 

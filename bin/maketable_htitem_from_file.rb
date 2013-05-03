@@ -1,4 +1,3 @@
-
 # encoding: UTF-8
 
 require 'phdb/enum_chron_parser'
