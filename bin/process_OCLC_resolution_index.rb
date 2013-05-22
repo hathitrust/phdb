@@ -29,7 +29,7 @@ def prune_OCLC_resolution_data(datafn, outfn)
       end
     end  
       
-    if ((count % 10000) == 0)
+    if ((count % 100000) == 0)
       puts "#{count}..."
     end
   end
