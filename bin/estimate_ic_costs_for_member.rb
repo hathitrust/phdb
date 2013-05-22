@@ -9,7 +9,8 @@ require 'phdb/cost_estimator'
 #AVE_COST_PER_VOL = 0.165692620281601  # jan 2013
 #AVE_COST_PER_VOL = 0.165335669929596 # feb 2013
 #AVE_COST_PER_VOL = 0.164977764010886  # march 2013
-AVE_COST_PER_VOL = 0.16478905170822647 # april 2013
+#AVE_COST_PER_VOL = 0.16478905170822647 # april 2013
+AVE_COST_PER_VOL = 0.163766430419597  # may 2013
 
 if ARGV.length != 3
   puts "Usage: ruby calc_ic_costs_for_member.rb <memberitem_table> <volume_id_table> <ave cost_per_vol>\n"

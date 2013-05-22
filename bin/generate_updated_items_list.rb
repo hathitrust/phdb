@@ -47,7 +47,7 @@ def generate_volume_change_list(olddb, newdb, outfn)
   conn.fetch_size=50000
   count = 0
 
-  # going to have to loop through every current volume_id and check it against the old version
+  # loop through every current volume_id and check it against the old version
   access_count_changes = []
   gain_loss_changes = []   
   query1 = "select volume_id from holdings_htitem"
