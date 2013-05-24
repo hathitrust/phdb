@@ -28,6 +28,10 @@ BEGIN
 
 	INSERT INTO holdings_cluster_htmember_jn (cluster_id, member_id)
         SELECT DISTINCT cluster_id, member_id FROM holdings_cluster_oclc, holdings_memberitem
+        WHERE holdings_cluster_oclc.oclc = holdings_memberitem.oclc AND member_id = 'brown';
+
+	INSERT INTO holdings_cluster_htmember_jn (cluster_id, member_id)
+        SELECT DISTINCT cluster_id, member_id FROM holdings_cluster_oclc, holdings_memberitem
 	WHERE holdings_cluster_oclc.oclc = holdings_memberitem.oclc AND member_id = 'bu';
 
 	INSERT INTO holdings_cluster_htmember_jn (cluster_id, member_id)

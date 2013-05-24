@@ -70,9 +70,9 @@ require 'phdb/phdb_utils'
 #outfilen = "HCounts_query.20130417.tsv"
 #PHDBUtils.pull_query(query, outfilen)
 
-query2 = "select member_id, count(distinct hm.oclc) from holdings_memberitem as hm, holdings_htitem_oclc as hho where hm.oclc = hho.oclc group by member_id;"
-outfilen = "oclc_match_query.20130417.tsv"
-PHDBUtils.pull_query(query2, outfilen)
+#query2 = "select member_id, count(distinct hm.oclc) from holdings_memberitem as hm, holdings_htitem_oclc as hho where hm.oclc = hho.oclc group by member_id;"
+#outfilen = "oclc_match_query.20130417.tsv"
+#PHDBUtils.pull_query(query2, outfilen)
 ### !!!!!!!!! ###
 
 
@@ -115,3 +115,7 @@ PHDBUtils.pull_query(query2, outfilen)
 #query1 = "select h.volume_id, h.item_type, h.oclcs, chj.cluster_id, h.reason_code from holdings_cluster_htitem_jn as chj, holdings_htitem as h where chj.volume_id = h.volume_id and cluster_id in (select cluster_id from holdings_cluster_htitem_jn as chj, holdings_htitem as h where chj.volume_id = h.volume_id and reason_code = 'con' and item_type = 'multi')"      
 #query2 = "select * from pulintz_ht.holdings_conquery_tmp where cluster_id in (select cluster_id from pulintz_ht.holdings_conquery_tmp where reason_code != 'con')"                                                    
 #PHDBUtils.pull_query(query2, "ConQuery.20130410.txt")
+
+### one-off wustl query, 05/23/13 ###
+query = "select hm.local_id, hm.oclc, hho.volume_id, hh.rights, hh.access from holdings_memberitem as hm, holdings_htitem_oclc as hho, holdings_htitem as hh where hh.volume_id = hho.volume_id and hho.oclc = hm.oclc and hm.member_id = 'wustl'"
+PHDBUtils.pull_query(query, "Wustl_report.20130523.tsv")
